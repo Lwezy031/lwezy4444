@@ -1,18 +1,27 @@
 const { MessageEmbed } = require("discord.js");
-const qdb = require("quick.db");
-const db = new qdb.table("ayarlar");
+const ayar = require("../settings.json")
+exports.run = async(client, message, args) => {
+    let embed = new MessageEmbed().setColor('RANDOM').setTimestamp().setAuthor(message.author.tag, message.author.avatarURL({ dynamic: true }))
 
-// module.exports.onLoad = (client) => {}
-module.exports.execute = (client, message, args, ayar, emoji) => {
-  let ekipRolu = ayar.ekipRolu || undefined;
-  let boosterRolu = ayar.boosterRolu || undefined;
-  const embed = new MessageEmbed().setTimestamp().setColor(client.randomColor()).setAuthor(message.guild.name, message.guild.iconURL({ dynamic: true })).setFooter("YASHINU ❤️ ALOSHA");
-  message.channel.send(embed.setDescription(`**Toplam Üye ・** ${client.emojiSayi(`${message.guild.memberCount}`)}\n**Aktif Üye ・** ${client.emojiSayi(`${message.guild.members.cache.filter(u => u.presence.status != "offline").size}`)}\n**Taglı Üye ・** ${client.emojiSayi(`${message.guild.roles.cache.get(ekipRolu).members.size}`) || "Ayarlanmamış"}\n**Booster Üye ・** ${client.emojiSayi(`${message.guild.roles.cache.get(boosterRolu).members.size}`) || "Ayarlanmamış"}\n**Sesteki Üye ・** ${client.emojiSayi(`${message.guild.channels.cache.filter(channel => channel.type == "voice").map(channel => channel.members.size).reduce((a, b) => a + b)}`)}`));
+    if (!message.member.roles.cache.has(ayar.botCommands) && !message.member.hasPermission(8)) return message.react(ayar.no)
+
+    let toplam = message.guild.memberCount;
+    let ses = message.guild.members.cache.filter(x => x.voice.channel).size
+    let taglı = message.guild.members.cache.filter(x => x.user.username.includes(ayar.tag)).size
+    let aktif = message.guild.members.cache.filter(x => x.presence.status !== "offline").size
+    let boost = message.guild.premiumSubscriptionCount
+    let boostlevel = message.guild.premiumTier
+
+    message.channel.send(embed.setDescription(`
+\`•\` Seste toplam \`${ses}\` kullanıcı var.
+\`•\` Toplam \`${taglı}\` kişi tagımıza sahip.
+\`•\` Sunucumuzda toplam \`${toplam}\` üye var.
+\`•\` Sunucumuza toplam \`${boost}\` takviye yapılmış, \`${boostlevel}\`. seviye.
+\`•\` Sunucumuzda toplam \`${aktif}\` çevrimiçi üye var.
+`)).then(m => m.delete({ timeout: 7000 }) && message.delete({ timeout: 7000 }))
 };
-
-module.exports.configuration = {
+exports.conf = {
     name: "say",
-    aliases: ["count","yoklama"],
-    usage: "say",
-    description: "Sunucu sayımı."
+    aliases: [],
+    permLevel: 0
 };

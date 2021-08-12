@@ -1,31 +1,30 @@
-﻿const { MessageEmbed } = require("discord.js");
+const { MessageEmbed } = require("discord.js");
+const ayar = require("../settings.json")
+exports.run = async(client, message, args) => {
+    let embed = new MessageEmbed().setColor('RANDOM').setAuthor(message.author.tag, message.author.avatarURL({ dynamic: true }))
 
-module.exports.execute = async(client, message, args, ayar, emoji) => {
-  let embed = new MessageEmbed().setAuthor(message.member.displayName, message.author.avatarURL({dynamic: true})).setFooter("YASHINU ❤️ ALOSHA").setColor(client.randomColor()).setTimestamp();
-  if(!message.member.roles.cache.has(ayar.sahipRolu)) return message.channel.send(embed.setDescription("Bu komutu kullanabilmek için gerekli rollere sahip değilsin!")).then(x => x.delete({timeout: 5000}));
-  let everyone = message.guild.roles.cache.find(a => a.name === "@everyone");
-  let permObjesi = {};
-  let everPermleri = message.channel.permissionOverwrites.get(everyone.id);
-  everPermleri.allow.toArray().forEach(p => {
-    permObjesi[p] = true;
-  });
-  everPermleri.deny.toArray().forEach(p => {
-    permObjesi[p] = false;
-  });
-  if(message.channel.permissionsFor(everyone).has('SEND_MESSAGES')) {
-    permObjesi["SEND_MESSAGES"] = false;
-    message.channel.createOverwrite(everyone, permObjesi);
-    message.channel.send(embed.setDescription("Kanal kilitlendi!"))
-  } else {
-    permObjesi["SEND_MESSAGES"] = null;
-    message.channel.createOverwrite(everyone, permObjesi);
-    message.channel.send(embed.setDescription("Kanal kilidi açıldı!"));
-  };
+    if (!message.member.hasPermission("ADMINISTRATOR")) return message.react(ayar.no)
+    let everyone = message.guild.roles.cache.find(a => a.name === "@everyone");
+    let permObjesi = {};
+    let everPermleri = message.channel.permissionOverwrites.get(everyone.id);
+    everPermleri.allow.toArray().forEach(p => {
+        permObjesi[p] = true;
+    });
+    everPermleri.deny.toArray().forEach(p => {
+        permObjesi[p] = false;
+    });
+    if (message.channel.permissionsFor(everyone).has('SEND_MESSAGES')) {
+        permObjesi["SEND_MESSAGES"] = false;
+        message.channel.createOverwrite(everyone, permObjesi);
+        message.channel.send(embed.setDescription("Kanal kilitlendi!")).then(m => m.delete({ timeout: 7000 }) && message.delete({ timeout: 7000 }))
+    } else {
+        permObjesi["SEND_MESSAGES"] = true;
+        message.channel.createOverwrite(everyone, permObjesi);
+        message.channel.send(embed.setDescription("Kanal kilidi açıldı!")).then(m => m.delete({ timeout: 7000 }) && message.delete({ timeout: 7000 }))
+    };
 };
-module.exports.configuration = {
+exports.conf = {
     name: "kilit",
-    aliases: ["lock"],
-    usage: "kilit",
-    description: "Komutun kullanıldığı chat kanalını kilitler.",
+    aliases: [],
     permLevel: 0
 };

@@ -11,28 +11,30 @@ exports.run = async(client, message, args) => {
     let member = message.mentions.members.first() || message.guild.members.cache.get(args[0])
     let user = message.guild.member(member)
     if (!user) return message.channel.send(embed.setDescription(`${message.author}, Eksik arguman kullandınız, \`.unmute @etiket/ID\``)).then(m => m.delete({ timeout: 7000 }) && message.delete({ timeout: 7000 }))
-
+    if (!user.voice.channel) return message.react(ayar.no)
     if (user.id === message.author.id) return message.react(ayar.no)
     if (user.id === client.user.id) return message.react(ayar.no)
     if (user.hasPermission(8)) return message.react(ayar.no)
 
 
-    let data = await kdb.get(`durum.${user.id}.mute`)
-    if (!data) return message.channel.send(embed.setDescription(`${user} Adlı kullanıcı zaten muteli değil.`)).then(m > m.delete({ timeout: 7000 }) && message.delete({ timeout: 7000 }))
+    let data = await kdb.get(`durum.${user.id}.vmute`)
+    if (!data) return message.channel.send(embed.setDescription(`${user} Adlı kullanıcı zaten muteli değil.`)).then(m => m.delete({ timeout: 7000 }) && message.delete({ timeout: 7000 }))
+
     if (data) {
-        user.roles.remove(ayar.muteRol).catch()
+        await kdb.delete(`durum.${user.id}.vmute`)
+        user.voice.setMute(false).catch()
         message.react(ayar.yes)
-        client.channels.cache.get(ayar.muteLog).send(embed.setDescription(`
-${user} Adlı kullanıcının metin kanallarındaki susturulması kaldırıldı.
+        client.channels.cache.get(ayar.vmuteLog).send(embed.setDescription(`
+${user} Adlı kullanıcının ses kanallarındaki susturulması kaldırıldı.
 `))
-        kdb.delete(`durum.${user.id}.mute`)
+
     }
 
 
 
 };
 exports.conf = {
-    name: "unmute",
-    aliases: ["unchatmute", "uncmute"],
+    name: "unvmute",
+    aliases: ["unvoicemute", "unvmute"],
     permLevel: 0
 };

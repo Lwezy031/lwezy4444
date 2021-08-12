@@ -1,19 +1,19 @@
-const { MessageEmbed } = require("discord.js");
+const { MessageEmbed, } = require("discord.js");
+const ayar = require("../settings.json");
 
-module.exports.execute = (client, message, args, ayar, emoji) => {
-	let victim = message.mentions.users.first() || client.users.cache.get(args[0]) || (args.length > 0 ? client.users.cache.filter(e => e.username.toLowerCase().includes(args.join(" ").toLowerCase())).first(): message.author) || message.author;
-	let avatar = victim.avatarURL({ dynamic: true, size: 2048 });
-  let embed = new MessageEmbed()
-	.setColor(client.randomColor())
-  .setAuthor(victim.tag, avatar)
-  .setFooter(`${message.member.displayName} tarafından istendi!`, message.author.avatarURL({ dynamic: true }))
-	.setDescription(`[Resim Adresi](${avatar})`)
-	.setImage(avatar)
-	message.channel.send(embed);
+exports.run = async(client, message, args) => {
+    let embed = new MessageEmbed().setColor('RANDOM').setTimestamp().setAuthor(message.author.tag, message.author.avatarURL({ dynamic: true }))
+
+    let user = message.mentions.users.first() || message.guild.members.cache.get(args[0]) || message.author;
+    let avatar = user.avatarURL({ dynamic: true, format: 'png', size: 1024 })
+
+    message.channel.send(avatar).then(m => m.delete({ timeout: 10000 }) && message.delete({ timeout: 10000 }))
+
+
+
 };
-module.exports.configuration = {
+exports.conf = {
     name: "avatar",
-    aliases: ["pp"],
-    usage: "avatar [üye]",
-    description: "Belirtilen üyenin avatarını gösterir."
+    aliases: ["av", "pp"],
+    permLevel: 0
 };

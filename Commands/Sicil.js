@@ -1,28 +1,31 @@
 const { MessageEmbed } = require("discord.js");
-const qdb = require("quick.db");
-const moment = require("moment");
-require("moment-duration-format");
-const db = new qdb.table("ayarlar");
-const kdb = new qdb.table("kullanici");
+const ayar = require("../settings.json");
+const db = require("quick.db")
+const kdb = new db.table("kullanıcı");
+exports.run = async(client, message, args) => {
+    if (!message.member.roles.cache.has(ayar.botCommands) && !message.member.roles.cache.has(ayar.muteHammer) && !message.member.hasPermission("ADMINISTRATOR")) return message.react(ayar.no)
+    let embed = new MessageEmbed().setColor('RANDOM').setTimestamp().setAuthor(message.author.tag, message.author.avatarURL({ dynamic: true }))
 
-module.exports.execute = async(client, message, args, ayar, emoji) => {
-  let kullanici = message.mentions.users.first() || client.users.cache.get(args[0]) || (args.length > 0 ? client.users.cache.filter(e => e.username.toLowerCase().includes(args.join(" ").toLowerCase())).first(): message.author) || message.author;
-  let uye = message.guild.member(kullanici);
-  let sicil = kdb.get(`kullanici.${uye.id}.sicil`) || [];
-  sicil = sicil.reverse();
-  let listedPenal = sicil.length > 0 ? sicil.map((value, index) => `\`${index + 1}.\` **[${value.Tip}]** ${new Date(value.Zaman).toTurkishFormatDate()} tarihinde **${value.Sebep}** nedeniyle ${message.guild.members.cache.has(value.Yetkili) ? message.guild.members.cache.get(value.Yetkili) : value.Yetkili} tarafından cezalandırıldı.`).join("\n") : "Temiz!";
-  client.splitEmbedWithDesc(`**${uye} Üyesinin Sicili**\n\n ${listedPenal}`,
-                           {name: message.guild.name, icon: message.guild.iconURL({dynamic: true, size: 2048})},
-                           {name: "YASHINU ❤️ ALOSHA", icon: false},
-                           {setColor: [client.randomColor()], setTimestamp: [Date.now()]}).then(list => {
-    list.forEach(item => {
-      message.channel.send(item);
-    });
-  });
+    let member = message.mentions.members.first() || message.guild.members.cache.get(args[0]) || message.author;
+    let user = message.guild.member(member)
+
+    let puan = await kdb.fetch(`cezapuan.${user.id}`) || "0"
+    let x = await kdb.fetch(`sicil.${user.id}`)
+    if (!x) return message.channel.send(embed.setDescription(`
+${user} Kullanıcısının sicil geçmişi temiz.
+`)).then(m => m.delete({ timeout: 7000 }))
+    let sicil = x.map((data, index) => `**[${data.Tip|| "belirtilmemiş"}]** <@!${data.adminID|| "belirtilmemiş"}> tarafından \`${data.start|| "belirtilmemiş"}\` tarihinde cezalandırıldı. \`#${data.cezaID || "Bulunamadı"}\``)
+
+    const sembed = embed.setDescription(`
+${sicil.join("\n") || "Bu kullanıcının sicili temiz."}
+
+**Ceza puanı:** \`${puan}\`
+`)
+    message.channel.send(sembed).then(m => m.delete({ timeout: 10000 }) && message.delete({ timeout: 7000 }))
+
 };
-module.exports.configuration = {
+exports.conf = {
     name: "sicil",
-    aliases: ["geçmiş"],
-    usage: "sicil [üye]",
-    description: "Belirtilen üyenin tüm sicilini gösterir."
+    aliases: [],
+    permLevel: 0
 };

@@ -1,27 +1,38 @@
 const { MessageEmbed } = require("discord.js");
-const qdb = require("quick.db");
-const jdb = new qdb.table("cezalar");
-const db = new qdb.table("ayarlar");
+const ayar = require("../settings.json");
+const db = require("quick.db")
+const kdb = new db.table("kullanıcı");
+const moment = require("moment");
+exports.run = async(client, message, args) => {
+    if (!message.member.roles.cache.has(ayar.botCommands) && !message.member.roles.cache.has(ayar.muteHammer) && !message.member.hasPermission("ADMINISTRATOR")) return message.react(ayar.no)
+    let embed = new MessageEmbed().setColor('RANDOM').setTimestamp().setAuthor(message.author.tag, message.author.avatarURL({ dynamic: true }))
 
-module.exports.execute = async (client, message, args, ayar, emoji) => {
-  let embed = new MessageEmbed().setAuthor(message.member.displayName, message.author.avatarURL({dynamic: true})).setFooter("YASHINU ❤️ ALOSHA").setColor(client.randomColor()).setTimestamp();
-  if(!ayar.jailRolu || !ayar.jailciRolleri) return message.channel.send("**Roller ayarlanmamış!**").then(x => x.delete({timeout: 5000}));
-  if(!ayar.jailciRolleri.some(rol => message.member.roles.cache.has(rol)) && !message.member.roles.cache.has(ayar.sahipRolu)) return message.channel.send(embed.setDescription(`Jail komutunu kullanabilmek için herhangi bir yetkiye sahip değilsin.`)).then(x => x.delete({timeout: 5000}));
-  let uye = message.mentions.members.first() || message.guild.members.cache.get(args[0]);
-  if(!uye) return message.channel.send(embed.setDescription("Geçerli bir üye belirtmelisin!")).then(x => x.delete({timeout: 5000}));
-  if (message.member.roles.highest.position <= uye.roles.highest.position) return message.channel.send(embed.setDescription(`Belirttiğin kişi senden üstün veya onunla aynı yetkidesin!`)).then(x => x.delete({timeout: 5000}));
-  let jaildekiler = jdb.get(`jail`) || [];
-  let tempjaildekiler = jdb.get(`tempjail`) || [];
-  uye.roles.set(ayar.teyitsizRolleri || []).catch();
-  if (jaildekiler.some(j => j.includes(uye.id))) jdb.set(`jail`, jaildekiler.filter(x => !x.includes(uye.id)));
-  if (tempjaildekiler.some(j => j.id === uye.id)) jdb.set(`tempjail`, tempjaildekiler.filter(x => x.id !== uye.id));
-  if(uye.voice.channel) uye.voice.kick().catch();
-  message.channel.send(embed.setDescription(`${uye} üyesi, ${message.author} tarafından jailden çıkarıldı!`)).catch();
-  if(ayar.jailLogKanali && client.channels.cache.has(ayar.jailLogKanali)) client.channels.cache.get(ayar.jailLogKanali).send(embed.setDescription(`${uye} üyesi, ${message.author} tarafından jailden çıkarıldı!`)).catch();
+
+    let member = message.mentions.members.first() || message.guild.members.cache.get(args[0])
+    let user = message.guild.member(member)
+    if (!user) return message.channel.send(embed.setDescription(`${message.author}, Eksik arguman kullandınız, \`.unjail @etiket/ID\``)).then(m => m.delete({ timeout: 7000 }) && message.delete({ timeout: 7000 }))
+
+    if (user.id === message.author.id) return message.react(ayar.no)
+    if (user.id === client.user.id) return message.react(ayar.no)
+    if (user.hasPermission(8)) return message.react(ayar.no)
+
+    let data = await kdb.get(`durum.${user.id}.jail`)
+    if (!data) return message.react(ayar.no)
+    user.roles.set([ayar.kayıtsız])
+    kdb.delete(`durum.${user.id}.jail`)
+
+
+
+    client.channels.cache.get(ayar.jailLog).send(embed.setDescription(`
+${user} Adlı kullanıcının jail cezası kaldırıldı.
+`))
+
+
+
+
 };
-module.exports.configuration = {
-  name: "unjail",
-  aliases: ['uncezalı'],
-  usage: "unjail [üye]",
-  description: "Belirtilen üyeyi jailden çıkarır."
+exports.conf = {
+    name: "unjail",
+    aliases: [],
+    permLevel: 0
 };

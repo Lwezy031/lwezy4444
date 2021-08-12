@@ -1,33 +1,42 @@
-﻿const { MessageEmbed } = require("discord.js");
+const { MessageEmbed, MessageCollector } = require("discord.js");
+const ayar = require("../settings.json");
 
-module.exports.execute = async(client, message, args, ayar, emoji) => {
-	let uye = message.mentions.members.first() || message.guild.members.cache.get(args[0]);
-  let embed = new MessageEmbed().setAuthor(message.member.displayName, message.author.avatarURL({dynamic: true})).setFooter("YASHINU ❤️ ALOSHA").setColor(client.randomColor()).setTimestamp();
-  if (!uye) return message.channel.send(embed.setDescription("Ses odasına gidilecek üyeyi belirtmelisin!")).then(x => x.delete({timeout: 5000}));
-  if (!message.member.voice.channel || !uye.voice.channel || message.member.voice.channelID == uye.voice.channelID) return message.channel.send(embed.setDescription("Belirtilen üyenin ve kendinin ses kanalında olduğundan emin ol!")).then(x => x.delete({timeout: 5000}));
-  if (message.member.hasPermission("ADMINISTRATOR")) {
-    await message.member.voice.setChannel(uye.voice.channelID);
-    message.react(client.emojiler.onay).catch();
-  } else {
-    const reactionFilter = (reaction, user) => {
-      return ['✅'].includes(reaction.emoji.name) && user.id === uye.id;
-    };
-    message.channel.send(`${uye}`, {embed: embed.setAuthor(uye.displayName, uye.user.avatarURL({dynamic: true, size: 2048})).setDescription(`${message.author} senin ses kanalına girmek için izin istiyor! Onaylıyor musun?`)}).then(async msj => {
-      await msj.react('✅');
-      msj.awaitReactions(reactionFilter, {max: 1, time: 15000, error: ['time']}).then(c => {
-	let cevap = c.first();
-	if (cevap) {
-	  message.member.voice.setChannel(uye.voice.channelID);
-          msj.delete();
-          message.react(client.emojiler.onay).catch();
-	};
-      });
-    });
-  };
+exports.run = async(client, message, args) => {
+    let embed = new MessageEmbed().setColor('RANDOM').setTimestamp().setAuthor(message.author.tag, message.author.avatarURL({ dynamic: true }))
+    let member = message.mentions.members.first() || message.guild.members.cache.get(args[0])
+    let victim = message.guild.member(member)
+    if (!victim) return message.react(ayar.no)
+    if (!victim.voice.channel) return message.react(ayar.no)
+    if (!message.member.voice.channel) return message.react(ayar.no)
+
+    message.channel.send(embed.setDescription(`${victim} - ${message.author} Adlı kullanıcı ses kanalına gelmek istiyor kabul ediyor musun ?`)).then(async(msg) => {
+        msg.react(ayar.yes)
+        msg.react(ayar.no)
+
+        const onayemoji = (reaction, user) => reaction.emoji.id === "827917065679011871" && user.id === victim.id;
+        const redemoji = (reaction, user) => reaction.emoji.id === "816413589165441046" && user.id === victim.id;
+
+        let onay = msg.createReactionCollector(onayemoji, { time: 30000, max: 1 })
+        let red = msg.createReactionCollector(redemoji, { time: 30000, max: 1 })
+
+
+        onay.on("collect", async() => {
+            await msg.reactions.removeAll()
+            message.member.voice.setChannel(victim.voice.channel.id)
+            message.channel.send(embed.setDescription(`${victim} Adlı kullanıcı odaya gelmenizi onayladı.`)).then(m => m.delete({ timeout: 7000 }))
+            msg.delete({ timeout: 7000 })
+            message.delete()
+        })
+        red.on("collect", async() => {
+            await msg.reactions.removeAll()
+            message.channel.send(embed.setDescription(`${victim} Adlı kullanıcı odaya gitmenizi reddetti.`)).then(m => m.delete({ timeout: 7000 }))
+            msg.delete({ timeout: 7000 })
+            message.delete()
+        })
+    })
 };
-module.exports.configuration = {
+exports.conf = {
     name: "git",
-    aliases: ["go"],
-    usage: "git [üye]",
-    description: "Belirtilen üyenin ses kanalına gitmenizi sağlar."
+    aliases: [],
+    permLevel: 0
 };
